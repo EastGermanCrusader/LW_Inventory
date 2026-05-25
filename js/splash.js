@@ -4,84 +4,84 @@
 (function () {
   'use strict';
 
-  var MIN_MS = 6000;
-  var startedAt = Date.now();
-  var appReady = false;
-  var hideScheduled = false;
-  var splashAudio = null;
-  var audioFadeTimer = null;
+  var MIN_DAUER_MS = 6000;
+  var gestartetAm = Date.now();
+  var appBereit = false;
+  var ausblendenGeplant = false;
+  var splashTon = null;
+  var tonAusblendTimer = null;
 
-  function $(id) { return document.getElementById(id); }
+  function element(id) { return document.getElementById(id); }
 
-  function setStatus(text) {
-    var el = $('splash-status');
-    if (el) el.textContent = text;
+  function statusSetzen(text) {
+    var ziel = element('splash-status');
+    if (ziel) ziel.textContent = text;
   }
 
-  function setProgress(pct) {
-    var bar = $('splash-progress-bar');
-    if (bar) bar.style.width = Math.min(100, Math.max(0, pct)) + '%';
+  function fortschrittSetzen(prozent) {
+    var balken = element('splash-progress-bar');
+    if (balken) balken.style.width = Math.min(100, Math.max(0, prozent)) + '%';
   }
 
-  function injectLoader() {
-    var mount = $('splash-loader');
+  function laderEinfuegen() {
+    var mount = element('splash-loader');
     if (!mount) return;
     fetch('js/splash-loader.html')
-      .then(function (r) { return r.text(); })
+      .then(function (antwort) { return antwort.text(); })
       .then(function (html) { mount.innerHTML = html; })
       .catch(function () {
         mount.innerHTML = '<div class="socket"><div class="gel center-gel"><div class="hex-brick h1"></div><div class="hex-brick h2"></div><div class="hex-brick h3"></div></div></div>';
       });
   }
 
-  function playSplashAudio() {
-    splashAudio = $('splash-audio');
-    if (!splashAudio) return;
+  function splashTonAbspielen() {
+    splashTon = element('splash-audio');
+    if (!splashTon) return;
 
-    splashAudio.volume = 0.9;
-    splashAudio.currentTime = 0;
+    splashTon.volume = 0.9;
+    splashTon.currentTime = 0;
 
-    var playPromise = splashAudio.play();
-    if (playPromise && typeof playPromise.catch === 'function') {
-      playPromise.catch(function () {
-        var splash = $('splash-screen');
+    var abspielen = splashTon.play();
+    if (abspielen && typeof abspielen.catch === 'function') {
+      abspielen.catch(function () {
+        var splash = element('splash-screen');
         if (!splash) return;
-        var hint = document.createElement('p');
-        hint.className = 'splash-audio-hint';
-        hint.textContent = 'Tippen/Klicken für Sound';
-        splash.querySelector('.splash-content').appendChild(hint);
-        splash.addEventListener('click', function onTap() {
-          splash.removeEventListener('click', onTap);
-          if (hint.parentNode) hint.parentNode.removeChild(hint);
-          splashAudio.play().catch(function () { /* ignore */ });
+        var hinweis = document.createElement('p');
+        hinweis.className = 'splash-audio-hint';
+        hinweis.textContent = 'Tippen/Klicken für Sound';
+        splash.querySelector('.splash-content').appendChild(hinweis);
+        splash.addEventListener('click', function beiTipp() {
+          splash.removeEventListener('click', beiTipp);
+          if (hinweis.parentNode) hinweis.parentNode.removeChild(hinweis);
+          splashTon.play().catch(function () { /* ignorieren */ });
         });
       });
     }
   }
 
-  function fadeOutSplashAudio() {
-    if (!splashAudio) return;
-    clearInterval(audioFadeTimer);
-    var steps = 12;
-    var step = 0;
-    var startVol = splashAudio.volume;
-    audioFadeTimer = setInterval(function () {
-      step++;
-      splashAudio.volume = Math.max(0, startVol * (1 - step / steps));
-      if (step >= steps) {
-        clearInterval(audioFadeTimer);
-        splashAudio.pause();
-        splashAudio.currentTime = 0;
+  function splashTonAusblenden() {
+    if (!splashTon) return;
+    clearInterval(tonAusblendTimer);
+    var schritte = 12;
+    var schritt = 0;
+    var startLautstaerke = splashTon.volume;
+    tonAusblendTimer = setInterval(function () {
+      schritt++;
+      splashTon.volume = Math.max(0, startLautstaerke * (1 - schritt / schritte));
+      if (schritt >= schritte) {
+        clearInterval(tonAusblendTimer);
+        splashTon.pause();
+        splashTon.currentTime = 0;
       }
     }, 50);
   }
 
-  function hideSplash() {
-    var splash = $('splash-screen');
-    var root = $('app-root');
-    setProgress(100);
-    setStatus('Bereit');
-    fadeOutSplashAudio();
+  function splashAusblenden() {
+    var splash = element('splash-screen');
+    var root = element('app-root');
+    fortschrittSetzen(100);
+    statusSetzen('Bereit');
+    splashTonAusblenden();
     if (splash) {
       splash.classList.add('splash-screen--out');
       splash.setAttribute('aria-busy', 'false');
@@ -92,34 +92,34 @@
     }, 700);
   }
 
-  function tryHide() {
-    if (!appReady || hideScheduled) return;
-    hideScheduled = true;
-    var elapsed = Date.now() - startedAt;
-    var wait = Math.max(0, MIN_MS - elapsed);
-    setTimeout(hideSplash, wait);
+  function ausblendenVersuchen() {
+    if (!appBereit || ausblendenGeplant) return;
+    ausblendenGeplant = true;
+    var vergangen = Date.now() - gestartetAm;
+    var warten = Math.max(0, MIN_DAUER_MS - vergangen);
+    setTimeout(splashAusblenden, warten);
   }
 
-  function finish() {
-    appReady = true;
-    setProgress(88);
-    setStatus('Inventar wird geladen…');
-    tryHide();
+  function abschliessen() {
+    appBereit = true;
+    fortschrittSetzen(88);
+    statusSetzen('Inventar wird geladen…');
+    ausblendenVersuchen();
   }
 
   window.LW_SPLASH = {
-    setStatus: setStatus,
-    setProgress: setProgress,
-    finish: finish
+    statusSetzen: statusSetzen,
+    fortschrittSetzen: fortschrittSetzen,
+    abschliessen: abschliessen
   };
 
-  injectLoader();
-  playSplashAudio();
-  setProgress(8);
-  setStatus('System wird initialisiert…');
+  laderEinfuegen();
+  splashTonAbspielen();
+  fortschrittSetzen(8);
+  statusSetzen('System wird initialisiert…');
 
-  setTimeout(function () { setProgress(22); setStatus('Konfiguration laden…'); }, 1000);
-  setTimeout(function () { setProgress(42); setStatus('Verbindung vorbereiten…'); }, 2200);
-  setTimeout(function () { setProgress(62); setStatus('Module laden…'); }, 3600);
-  setTimeout(function () { setProgress(78); setStatus('Fast fertig…'); }, 4800);
+  setTimeout(function () { fortschrittSetzen(22); statusSetzen('Konfiguration laden…'); }, 1000);
+  setTimeout(function () { fortschrittSetzen(42); statusSetzen('Verbindung vorbereiten…'); }, 2200);
+  setTimeout(function () { fortschrittSetzen(62); statusSetzen('Module laden…'); }, 3600);
+  setTimeout(function () { fortschrittSetzen(78); statusSetzen('Fast fertig…'); }, 4800);
 })();

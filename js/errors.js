@@ -4,30 +4,30 @@
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'lw_error_log';
-  var MAX_ENTRIES = 80;
-  var logs = [];
-  var panelBound = false;
+  var SPEICHER_SCHLUESSEL = 'lw_error_log';
+  var MAX_EINTRAEGE = 80;
+  var protokoll = [];
+  var panelGebunden = false;
 
-  function $(id) { return document.getElementById(id); }
+  function element(id) { return document.getElementById(id); }
 
-  function loadLogs() {
+  function protokollLaden() {
     try {
-      var raw = sessionStorage.getItem(STORAGE_KEY);
-      logs = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(logs)) logs = [];
+      var roh = sessionStorage.getItem(SPEICHER_SCHLUESSEL);
+      protokoll = roh ? JSON.parse(roh) : [];
+      if (!Array.isArray(protokoll)) protokoll = [];
     } catch (e) {
-      logs = [];
+      protokoll = [];
     }
   }
 
-  function saveLogs() {
+  function protokollSpeichern() {
     try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(logs.slice(0, MAX_ENTRIES)));
+      sessionStorage.setItem(SPEICHER_SCHLUESSEL, JSON.stringify(protokoll.slice(0, MAX_EINTRAEGE)));
     } catch (e) { /* Speicher voll */ }
   }
 
-  function formatTime(iso) {
+  function zeitFormatieren(iso) {
     try {
       return new Date(iso).toLocaleString('de-DE', {
         day: '2-digit',
@@ -42,258 +42,255 @@
     }
   }
 
-  function entryToText(entry, index) {
-    var lines = [];
-    lines.push('=== LW Inventory Fehler #' + (index != null ? index + 1 : '?') + ' ===');
-    lines.push('Zeit:      ' + formatTime(entry.time));
-    lines.push('Level:     ' + (entry.level || 'error').toUpperCase());
-    lines.push('Quelle:    ' + (entry.source || '—'));
-    lines.push('Meldung:   ' + entry.message);
-    if (entry.stack) lines.push('Stack:\n' + entry.stack);
-    if (entry.detail) {
+  function eintragAlsText(eintrag, index) {
+    var zeilen = [];
+    zeilen.push('=== LW Inventory Fehler #' + (index != null ? index + 1 : '?') + ' ===');
+    zeilen.push('Zeit:      ' + zeitFormatieren(eintrag.time));
+    zeilen.push('Level:     ' + (eintrag.level || 'error').toUpperCase());
+    zeilen.push('Quelle:    ' + (eintrag.source || '—'));
+    zeilen.push('Meldung:   ' + eintrag.message);
+    if (eintrag.stack) zeilen.push('Stack:\n' + eintrag.stack);
+    if (eintrag.detail) {
       try {
-        lines.push('Details:\n' + JSON.stringify(entry.detail, null, 2));
+        zeilen.push('Details:\n' + JSON.stringify(eintrag.detail, null, 2));
       } catch (e) {
-        lines.push('Details:   ' + String(entry.detail));
+        zeilen.push('Details:   ' + String(eintrag.detail));
       }
     }
-    lines.push('URL:       ' + (entry.url || ''));
-    lines.push('');
-    return lines.join('\n');
+    zeilen.push('URL:       ' + (eintrag.url || ''));
+    zeilen.push('');
+    return zeilen.join('\n');
   }
 
-  function allToText() {
-    if (!logs.length) return 'Keine Fehler im Protokoll.';
-    var header = 'LW Inventory – Fehlerprotokoll (' + logs.length + ' Einträge)\n' +
-      'Exportiert: ' + formatTime(new Date().toISOString()) + '\n' +
+  function gesamtAlsText() {
+    if (!protokoll.length) return 'Keine Fehler im Protokoll.';
+    var kopf = 'LW Inventory – Fehlerprotokoll (' + protokoll.length + ' Einträge)\n' +
+      'Exportiert: ' + zeitFormatieren(new Date().toISOString()) + '\n' +
       'User-Agent: ' + navigator.userAgent + '\n\n';
-    return header + logs.map(function (e, i) { return entryToText(e, i); }).join('\n');
+    return kopf + protokoll.map(function (e, i) { return eintragAlsText(e, i); }).join('\n');
   }
 
-  function copyText(text) {
+  function textKopieren(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(text);
     }
-    var ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.left = '-9999px';
-    document.body.appendChild(ta);
-    ta.select();
+    var feld = document.createElement('textarea');
+    feld.value = text;
+    feld.style.position = 'fixed';
+    feld.style.left = '-9999px';
+    document.body.appendChild(feld);
+    feld.select();
     document.execCommand('copy');
-    document.body.removeChild(ta);
+    document.body.removeChild(feld);
     return Promise.resolve();
   }
 
-  function updateBadge() {
-    var btn = $('btn-error-log');
-    var badge = $('error-log-badge');
-    if (!btn || !badge) return;
-    var n = logs.length;
-    badge.textContent = n > 99 ? '99+' : String(n);
-    badge.hidden = n === 0;
-    btn.classList.toggle('has-errors', n > 0);
+  function badgeAktualisieren() {
+    var knopf = element('btn-error-log');
+    var badge = element('error-log-badge');
+    if (!knopf || !badge) return;
+    var anzahl = protokoll.length;
+    badge.textContent = anzahl > 99 ? '99+' : String(anzahl);
+    badge.hidden = anzahl === 0;
+    knopf.classList.toggle('has-errors', anzahl > 0);
   }
 
-  function log(level, message, opts) {
-    opts = opts || {};
-    var entry = {
+  function protokollieren(stufe, meldung, optionen) {
+    optionen = optionen || {};
+    var eintrag = {
       id: 'E' + Date.now() + Math.floor(Math.random() * 1e4),
       time: new Date().toISOString(),
-      level: level || 'error',
-      source: opts.source || 'app',
-      message: String(message || 'Unbekannter Fehler'),
-      stack: opts.stack || null,
-      detail: opts.detail || null,
+      level: stufe || 'error',
+      source: optionen.source || 'app',
+      message: String(meldung || 'Unbekannter Fehler'),
+      stack: optionen.stack || null,
+      detail: optionen.detail || null,
       url: window.location.href
     };
-    logs.unshift(entry);
-    if (logs.length > MAX_ENTRIES) logs.length = MAX_ENTRIES;
-    saveLogs();
-    updateBadge();
-    if ($('error-log-modal') && $('error-log-modal').classList.contains('open')) {
-      renderList();
+    protokoll.unshift(eintrag);
+    if (protokoll.length > MAX_EINTRAEGE) protokoll.length = MAX_EINTRAEGE;
+    protokollSpeichern();
+    badgeAktualisieren();
+    if (element('error-log-modal') && element('error-log-modal').classList.contains('open')) {
+      listeRendern();
     }
-    return entry;
+    return eintrag;
   }
 
-  function logFromError(err, opts) {
-    opts = opts || {};
-    if (!err) return log('error', opts.message || 'Unbekannter Fehler', opts);
-    return log(opts.level || 'error', err.message || String(err), {
-      source: opts.source || 'exception',
-      stack: err.stack || null,
-      detail: opts.detail || null
+  function ausException(fehler, optionen) {
+    optionen = optionen || {};
+    if (!fehler) return protokollieren('error', optionen.message || 'Unbekannter Fehler', optionen);
+    return protokollieren(optionen.level || 'error', fehler.message || String(fehler), {
+      source: optionen.source || 'exception',
+      stack: fehler.stack || null,
+      detail: optionen.detail || null
     });
   }
 
-  function renderList() {
-    var list = $('error-log-list');
-    var empty = $('error-log-empty');
-    if (!list) return;
+  function listeRendern() {
+    var liste = element('error-log-list');
+    var leer = element('error-log-empty');
+    if (!liste) return;
 
-    if (!logs.length) {
-      list.innerHTML = '';
-      if (empty) empty.hidden = false;
+    if (!protokoll.length) {
+      liste.innerHTML = '';
+      if (leer) leer.hidden = false;
       return;
     }
-    if (empty) empty.hidden = true;
+    if (leer) leer.hidden = true;
 
-    list.innerHTML = logs.map(function (entry, idx) {
-      var level = (entry.level || 'error').toLowerCase();
-      var detailPreview = '';
-      if (entry.detail) {
+    liste.innerHTML = protokoll.map(function (eintrag, idx) {
+      var stufe = (eintrag.level || 'error').toLowerCase();
+      var detailVorschau = '';
+      if (eintrag.detail) {
         try {
-          detailPreview = JSON.stringify(entry.detail);
-          if (detailPreview.length > 120) detailPreview = detailPreview.slice(0, 120) + '…';
+          detailVorschau = JSON.stringify(eintrag.detail);
+          if (detailVorschau.length > 120) detailVorschau = detailVorschau.slice(0, 120) + '…';
         } catch (e) {
-          detailPreview = String(entry.detail);
+          detailVorschau = String(eintrag.detail);
         }
       }
       return (
-        '<article class="error-log-item error-log-item--' + level + '" data-id="' + entry.id + '">' +
+        '<article class="error-log-item error-log-item--' + stufe + '" data-id="' + eintrag.id + '">' +
         '<div class="error-log-item-head">' +
-        '<span class="error-log-level">' + level.toUpperCase() + '</span>' +
-        '<time class="error-log-time">' + formatTime(entry.time) + '</time>' +
-        '<span class="error-log-source">' + (entry.source || 'app') + '</span>' +
+        '<span class="error-log-level">' + stufe.toUpperCase() + '</span>' +
+        '<time class="error-log-time">' + zeitFormatieren(eintrag.time) + '</time>' +
+        '<span class="error-log-source">' + (eintrag.source || 'app') + '</span>' +
         '</div>' +
-        '<p class="error-log-msg">' + escapeHtml(entry.message) + '</p>' +
-        (entry.stack ? '<pre class="error-log-stack">' + escapeHtml(entry.stack) + '</pre>' : '') +
-        (detailPreview ? '<pre class="error-log-detail">' + escapeHtml(detailPreview) + '</pre>' : '') +
+        '<p class="error-log-msg">' + htmlEscapen(eintrag.message) + '</p>' +
+        (eintrag.stack ? '<pre class="error-log-stack">' + htmlEscapen(eintrag.stack) + '</pre>' : '') +
+        (detailVorschau ? '<pre class="error-log-detail">' + htmlEscapen(detailVorschau) + '</pre>' : '') +
         '<div class="error-log-item-actions">' +
-        '<button type="button" class="btn btn-secondary btn-error-copy-one" data-id="' + entry.id + '">Kopieren</button>' +
+        '<button type="button" class="btn btn-secondary btn-error-copy-one" data-id="' + eintrag.id + '">Kopieren</button>' +
         '</div></article>'
       );
     }).join('');
 
-    list.querySelectorAll('.btn-error-copy-one').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var id = btn.getAttribute('data-id');
-        var entry = logs.find(function (x) { return x.id === id; });
-        var idx = logs.indexOf(entry);
-        if (entry) {
-          copyText(entryToText(entry, idx)).then(notifyCopied).catch(notifyCopyFail);
+    liste.querySelectorAll('.btn-error-copy-one').forEach(function (knopf) {
+      knopf.addEventListener('click', function () {
+        var id = knopf.getAttribute('data-id');
+        var eintrag = protokoll.find(function (x) { return x.id === id; });
+        var index = protokoll.indexOf(eintrag);
+        if (eintrag) {
+          textKopieren(eintragAlsText(eintrag, index)).then(kopiertHinweis).catch(kopierenFehlgeschlagen);
         }
       });
     });
   }
 
-  function escapeHtml(s) {
-    var d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
+  function htmlEscapen(s) {
+    var div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
   }
 
-  function notifyCopied() {
-    if (window.toast && typeof toast === 'function') {
-      /* app toast not global */
-    }
-    var hint = $('error-log-copy-hint');
-    if (hint) {
-      hint.textContent = 'In Zwischenablage kopiert.';
-      hint.hidden = false;
-      setTimeout(function () { hint.hidden = true; }, 2000);
+  function kopiertHinweis() {
+    var hinweis = element('error-log-copy-hint');
+    if (hinweis) {
+      hinweis.textContent = 'In Zwischenablage kopiert.';
+      hinweis.hidden = false;
+      setTimeout(function () { hinweis.hidden = true; }, 2000);
     }
   }
 
-  function notifyCopyFail() {
-    var hint = $('error-log-copy-hint');
-    if (hint) {
-      hint.textContent = 'Kopieren fehlgeschlagen.';
-      hint.hidden = false;
+  function kopierenFehlgeschlagen() {
+    var hinweis = element('error-log-copy-hint');
+    if (hinweis) {
+      hinweis.textContent = 'Kopieren fehlgeschlagen.';
+      hinweis.hidden = false;
     }
   }
 
-  function openPanel() {
-    var modal = $('error-log-modal');
+  function panelOeffnen() {
+    var modal = element('error-log-modal');
     if (modal) {
       modal.classList.add('open');
-      renderList();
+      listeRendern();
     }
   }
 
-  function closePanel() {
-    var modal = $('error-log-modal');
+  function panelSchliessen() {
+    var modal = element('error-log-modal');
     if (modal) modal.classList.remove('open');
   }
 
-  function clearLogs() {
-    if (!logs.length) return;
+  function protokollLeeren() {
+    if (!protokoll.length) return;
     if (!confirm('Gesamtes Fehlerprotokoll löschen?')) return;
-    logs = [];
-    saveLogs();
-    updateBadge();
-    renderList();
+    protokoll = [];
+    protokollSpeichern();
+    badgeAktualisieren();
+    listeRendern();
   }
 
-  function bindPanel() {
-    if (panelBound) return;
-    panelBound = true;
+  function panelBinden() {
+    if (panelGebunden) return;
+    panelGebunden = true;
 
-    var btn = $('btn-error-log');
-    if (btn) btn.addEventListener('click', openPanel);
+    var knopf = element('btn-error-log');
+    if (knopf) knopf.addEventListener('click', panelOeffnen);
 
-    var copyAll = $('btn-error-copy-all');
-    if (copyAll) {
-      copyAll.addEventListener('click', function () {
-        copyText(allToText()).then(notifyCopied).catch(notifyCopyFail);
+    var allesKopieren = element('btn-error-copy-all');
+    if (allesKopieren) {
+      allesKopieren.addEventListener('click', function () {
+        textKopieren(gesamtAlsText()).then(kopiertHinweis).catch(kopierenFehlgeschlagen);
       });
     }
 
-    var clearBtn = $('btn-error-clear');
-    if (clearBtn) clearBtn.addEventListener('click', clearLogs);
+    var leerenKnopf = element('btn-error-clear');
+    if (leerenKnopf) leerenKnopf.addEventListener('click', protokollLeeren);
 
     document.querySelectorAll('[data-close="error-log-modal"]').forEach(function (el) {
-      el.addEventListener('click', closePanel);
+      el.addEventListener('click', panelSchliessen);
     });
 
-    var modal = $('error-log-modal');
+    var modal = element('error-log-modal');
     if (modal) {
       modal.addEventListener('click', function (e) {
-        if (e.target === modal) closePanel();
+        if (e.target === modal) panelSchliessen();
       });
     }
   }
 
-  function installGlobalHandlers() {
-    window.addEventListener('error', function (ev) {
-      log('error', ev.message || 'Script-Fehler', {
+  function globaleFehlerhandlerInstallieren() {
+    window.addEventListener('error', function (ereignis) {
+      protokollieren('error', ereignis.message || 'Script-Fehler', {
         source: 'window.onerror',
-        stack: ev.error && ev.error.stack ? ev.error.stack : (ev.filename ? ev.filename + ':' + ev.lineno + ':' + ev.colno : null),
-        detail: { file: ev.filename, line: ev.lineno, col: ev.colno }
+        stack: ereignis.error && ereignis.error.stack ? ereignis.error.stack : (ereignis.filename ? ereignis.filename + ':' + ereignis.lineno + ':' + ereignis.colno : null),
+        detail: { file: ereignis.filename, line: ereignis.lineno, col: ereignis.colno }
       });
     });
 
-    window.addEventListener('unhandledrejection', function (ev) {
-      var reason = ev.reason;
-      if (reason instanceof Error) {
-        logFromError(reason, { source: 'unhandledrejection' });
+    window.addEventListener('unhandledrejection', function (ereignis) {
+      var grund = ereignis.reason;
+      if (grund instanceof Error) {
+        ausException(grund, { source: 'unhandledrejection' });
       } else {
-        log('error', String(reason), { source: 'unhandledrejection', detail: reason });
+        protokollieren('error', String(grund), { source: 'unhandledrejection', detail: grund });
       }
     });
   }
 
-  loadLogs();
-  installGlobalHandlers();
+  protokollLaden();
+  globaleFehlerhandlerInstallieren();
 
   window.LW_ERRORS = {
-    log: log,
-    logFromError: logFromError,
-    getAll: function () { return logs.slice(); },
-    clear: clearLogs,
-    open: openPanel,
-    copyAll: function () { return copyText(allToText()); },
-    refresh: renderList
+    protokollieren: protokollieren,
+    ausException: ausException,
+    alleHolen: function () { return protokoll.slice(); },
+    leeren: protokollLeeren,
+    oeffnen: panelOeffnen,
+    allesKopieren: function () { return textKopieren(gesamtAlsText()); },
+    aktualisieren: listeRendern
   };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
-      bindPanel();
-      updateBadge();
+      panelBinden();
+      badgeAktualisieren();
     });
   } else {
-    bindPanel();
-    updateBadge();
+    panelBinden();
+    badgeAktualisieren();
   }
 })();

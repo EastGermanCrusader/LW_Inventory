@@ -6,17 +6,17 @@
 (function () {
   'use strict';
 
-  var HOVER_SRC = 'hover.mp3';
-  var PRESS_SRC = 'press.mp3';
-  var INPUT_SRC = 'input.mp3';
-  var VOLUME = 0.75;
+  var HOVER_QUELLE = 'hover.mp3';
+  var DRUCK_QUELLE = 'press.mp3';
+  var EINGABE_QUELLE = 'input.mp3';
+  var LAUTSTAERKE = 0.75;
 
-  var hoverAudio = null;
-  var pressAudio = null;
-  var currentHoverEl = null;
-  var enabled = true;
+  var hoverTon = null;
+  var druckTon = null;
+  var aktuellesHoverElement = null;
+  var aktiviert = true;
 
-  var SELECTOR = [
+  var SELEKTOR = [
     'button',
     '.btn',
     '.tab-btn',
@@ -25,47 +25,47 @@
     '.modal-close'
   ].join(', ');
 
-  function initAudio() {
-    hoverAudio = new Audio(HOVER_SRC);
-    hoverAudio.preload = 'auto';
-    hoverAudio.volume = VOLUME;
-    hoverAudio.loop = false;
+  function audioInitialisieren() {
+    hoverTon = new Audio(HOVER_QUELLE);
+    hoverTon.preload = 'auto';
+    hoverTon.volume = LAUTSTAERKE;
+    hoverTon.loop = false;
 
-    pressAudio = new Audio(PRESS_SRC);
-    pressAudio.preload = 'auto';
-    pressAudio.volume = VOLUME;
+    druckTon = new Audio(DRUCK_QUELLE);
+    druckTon.preload = 'auto';
+    druckTon.volume = LAUTSTAERKE;
   }
 
-  function findButton(target) {
-    if (!target || !target.closest) return null;
-    if (target.closest('#splash-screen')) return null;
-    var el = target.closest(SELECTOR);
+  function knopfFinden(ziel) {
+    if (!ziel || !ziel.closest) return null;
+    if (ziel.closest('#splash-screen')) return null;
+    var el = ziel.closest(SELEKTOR);
     if (!el) return null;
     if (el.disabled || el.getAttribute('aria-disabled') === 'true') return null;
     return el;
   }
 
-  function stopHover() {
-    if (!hoverAudio) return;
-    hoverAudio.pause();
-    hoverAudio.currentTime = 0;
+  function hoverStoppen() {
+    if (!hoverTon) return;
+    hoverTon.pause();
+    hoverTon.currentTime = 0;
   }
 
-  function startHover() {
-    if (!enabled || !hoverAudio) return;
-    stopHover();
-    var p = hoverAudio.play();
-    if (p && p.catch) p.catch(function () { /* Autoplay-Richtlinie */ });
+  function hoverStarten() {
+    if (!aktiviert || !hoverTon) return;
+    hoverStoppen();
+    var abspielen = hoverTon.play();
+    if (abspielen && abspielen.catch) abspielen.catch(function () { /* Autoplay-Richtlinie */ });
   }
 
-  function playPress() {
-    if (!enabled || !pressAudio) return;
-    pressAudio.currentTime = 0;
-    var p = pressAudio.play();
-    if (p && p.catch) p.catch(function () { /* ignore */ });
+  function druckTonAbspielen() {
+    if (!aktiviert || !druckTon) return;
+    druckTon.currentTime = 0;
+    var abspielen = druckTon.play();
+    if (abspielen && abspielen.catch) abspielen.catch(function () { /* ignorieren */ });
   }
 
-  var SKIP_INPUT_TYPES = {
+  var EINGABE_TYPEN_UEBERSPRINGEN = {
     hidden: 1,
     file: 1,
     checkbox: 1,
@@ -76,79 +76,79 @@
     color: 1
   };
 
-  function findTextInput(target) {
-    if (!target || !target.closest) return null;
-    if (target.closest('#splash-screen')) return null;
-    var el = target.closest('input, textarea');
+  function texteingabeFinden(ziel) {
+    if (!ziel || !ziel.closest) return null;
+    if (ziel.closest('#splash-screen')) return null;
+    var el = ziel.closest('input, textarea');
     if (!el) return null;
     if (el.disabled || el.readOnly) return null;
     if (el.tagName === 'INPUT') {
-      var type = (el.type || 'text').toLowerCase();
-      if (SKIP_INPUT_TYPES[type]) return null;
+      var typ = (el.type || 'text').toLowerCase();
+      if (EINGABE_TYPEN_UEBERSPRINGEN[typ]) return null;
     }
     return el;
   }
 
-  function playInput() {
-    if (!enabled) return;
-    var a = new Audio(INPUT_SRC);
-    a.volume = VOLUME;
-    var p = a.play();
-    if (p && p.catch) p.catch(function () { /* ignore */ });
+  function eingabeTonAbspielen() {
+    if (!aktiviert) return;
+    var ton = new Audio(EINGABE_QUELLE);
+    ton.volume = LAUTSTAERKE;
+    var abspielen = ton.play();
+    if (abspielen && abspielen.catch) abspielen.catch(function () { /* ignorieren */ });
   }
 
-  function onInput(e) {
-    if (!findTextInput(e.target)) return;
-    playInput();
+  function beiEingabe(ereignis) {
+    if (!texteingabeFinden(ereignis.target)) return;
+    eingabeTonAbspielen();
   }
 
-  function onMouseOver(e) {
-    var btn = findButton(e.target);
-    if (!btn) return;
-    if (btn === currentHoverEl) return;
-    var from = e.relatedTarget;
-    if (from && btn.contains(from)) return;
+  function beiMausDrueber(ereignis) {
+    var knopf = knopfFinden(ereignis.target);
+    if (!knopf) return;
+    if (knopf === aktuellesHoverElement) return;
+    var von = ereignis.relatedTarget;
+    if (von && knopf.contains(von)) return;
 
-    if (currentHoverEl && currentHoverEl !== btn) {
-      stopHover();
+    if (aktuellesHoverElement && aktuellesHoverElement !== knopf) {
+      hoverStoppen();
     }
-    currentHoverEl = btn;
-    startHover();
+    aktuellesHoverElement = knopf;
+    hoverStarten();
   }
 
-  function onMouseOut(e) {
-    if (!currentHoverEl) return;
-    var btn = findButton(e.target);
-    if (btn !== currentHoverEl) return;
-    var to = e.relatedTarget;
-    if (to && currentHoverEl.contains(to)) return;
+  function beiMausWeg(ereignis) {
+    if (!aktuellesHoverElement) return;
+    var knopf = knopfFinden(ereignis.target);
+    if (knopf !== aktuellesHoverElement) return;
+    var nach = ereignis.relatedTarget;
+    if (nach && aktuellesHoverElement.contains(nach)) return;
 
-    stopHover();
-    currentHoverEl = null;
+    hoverStoppen();
+    aktuellesHoverElement = null;
   }
 
-  function onPointerDown(e) {
-    if (e.button !== 0) return;
-    var btn = findButton(e.target);
-    if (!btn) return;
-    stopHover();
-    currentHoverEl = null;
-    playPress();
+  function beiZeigerDruck(ereignis) {
+    if (ereignis.button !== 0) return;
+    var knopf = knopfFinden(ereignis.target);
+    if (!knopf) return;
+    hoverStoppen();
+    aktuellesHoverElement = null;
+    druckTonAbspielen();
   }
 
-  function bind() {
-    document.addEventListener('mouseover', onMouseOver, true);
-    document.addEventListener('mouseout', onMouseOut, true);
-    document.addEventListener('pointerdown', onPointerDown, true);
-    document.addEventListener('input', onInput, true);
+  function binden() {
+    document.addEventListener('mouseover', beiMausDrueber, true);
+    document.addEventListener('mouseout', beiMausWeg, true);
+    document.addEventListener('pointerdown', beiZeigerDruck, true);
+    document.addEventListener('input', beiEingabe, true);
   }
 
-  initAudio();
-  bind();
+  audioInitialisieren();
+  binden();
 
   window.LW_UI_SOUNDS = {
-    enable: function () { enabled = true; },
-    disable: function () { enabled = false; stopHover(); },
-    stopHover: stopHover
+    aktivieren: function () { aktiviert = true; },
+    deaktivieren: function () { aktiviert = false; hoverStoppen(); },
+    hoverStoppen: hoverStoppen
   };
 })();
