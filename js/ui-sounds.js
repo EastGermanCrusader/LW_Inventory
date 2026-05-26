@@ -15,6 +15,18 @@
   var druckTon = null;
   var aktuellesHoverElement = null;
   var aktiviert = true;
+  var letzteZeigerX = null;
+  var letzteZeigerY = null;
+
+  function klangMelden(staerke, ereignis) {
+    window.dispatchEvent(new CustomEvent('lw-klang', {
+      detail: {
+        staerke: staerke,
+        x: ereignis && typeof ereignis.clientX === 'number' ? ereignis.clientX : letzteZeigerX,
+        y: ereignis && typeof ereignis.clientY === 'number' ? ereignis.clientY : letzteZeigerY
+      }
+    }));
+  }
 
   var SELEKTOR = [
     'button',
@@ -56,6 +68,7 @@
     hoverStoppen();
     var abspielen = hoverTon.play();
     if (abspielen && abspielen.catch) abspielen.catch(function () { /* Autoplay-Richtlinie */ });
+    klangMelden(0.12, null);
   }
 
   function druckTonAbspielen() {
@@ -100,6 +113,7 @@
   function beiEingabe(ereignis) {
     if (!texteingabeFinden(ereignis.target)) return;
     eingabeTonAbspielen();
+    klangMelden(0.28, ereignis);
   }
 
   function beiMausDrueber(ereignis) {
@@ -134,9 +148,14 @@
     hoverStoppen();
     aktuellesHoverElement = null;
     druckTonAbspielen();
+    klangMelden(0.55, ereignis);
   }
 
   function binden() {
+    document.addEventListener('pointermove', function (e) {
+      letzteZeigerX = e.clientX;
+      letzteZeigerY = e.clientY;
+    }, { passive: true });
     document.addEventListener('mouseover', beiMausDrueber, true);
     document.addEventListener('mouseout', beiMausWeg, true);
     document.addEventListener('pointerdown', beiZeigerDruck, true);

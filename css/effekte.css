@@ -1,0 +1,94 @@
+/* Glassmorphism + Partikel-Ebenen (zwischen Hintergrund und UI) */
+
+:root {
+  --glas-hintergrund: rgba(15, 20, 25, 0.38);
+  --glas-hintergrund-stark: rgba(26, 35, 50, 0.52);
+  --glas-blur: 18px;
+  --glas-kante: rgba(248, 113, 113, 0.14);
+  --glas-kante-hell: rgba(255, 255, 255, 0.06);
+}
+
+html,
+body {
+  background:
+    radial-gradient(ellipse 120% 80% at 20% 10%, rgba(139, 26, 42, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 70% at 85% 90%, rgba(239, 68, 68, 0.18) 0%, transparent 50%),
+    var(--bg);
+}
+
+.partikel-leinwand {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.glas-schicht {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: rgba(10, 14, 20, 0.12);
+  backdrop-filter: blur(12px) saturate(1.25);
+  -webkit-backdrop-filter: blur(12px) saturate(1.25);
+}
+
+.app-root {
+  position: relative;
+  z-index: 10;
+}
+
+.app-header,
+main,
+.stat-card,
+.item-card,
+.public-info-card,
+.session-bar,
+.modal,
+.toast,
+.bearbeitungs-musik-mute-wrap .toggleSwitch {
+  background: var(--glas-hintergrund) !important;
+  backdrop-filter: blur(var(--glas-blur)) saturate(1.15);
+  -webkit-backdrop-filter: blur(var(--glas-blur)) saturate(1.15);
+  border-color: var(--glas-kante) !important;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 var(--glas-kante-hell);
+}
+
+.modal-overlay {
+  background: rgba(5, 8, 12, 0.55) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.modal {
+  background: var(--glas-hintergrund-stark) !important;
+  border: 1px solid var(--glas-kante);
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select,
+.search-input {
+  background: rgba(10, 14, 20, 0.45) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.footer-note {
+  position: relative;
+  z-index: 10;
+  background: transparent;
+}
+
+.brand-logo-wrap {
+  background: rgba(255, 255, 255, 0.92) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glas-schicht {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
