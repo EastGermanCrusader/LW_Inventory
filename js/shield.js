@@ -1,5 +1,5 @@
 /* LW Inventory Shield – generiert, nicht manuell bearbeiten */
-(function(g){var P={"s":"01yhgRrx0GqkylicrToPCw==","i":"lxbmzQSHMFnoz3sT","t":"QMk95pA9SDwEJgB5HPI8tQ==","c":"WzDpBCztwtlGSjcvCB+c/EWRWUiHWThf/Vx6ClMQBuXqKY993G5NGEwZ+OdR4ZBDxcJCqqSvLrGtX2897XAHtBXexTt3zO+kgu91G09KIIoLBYg+Xy916wjxPhnJEnynWA8S5giCya7kRLgunCxnow==","h":"0ba567fd734804ce369218772b06fe8817173ecf3404fb2705bfcd0aef012a33","p":"QUtmeWNid2N3VlpDaDgxMnFUcW5PU0tYaVpodXJHMkM1YVJlNHFNclJRam4xeXZHMDRjRGQyZlhsSHlpX0hqSjdtT2wzMzVx"};
+(function(g){var P={"s":"01yhgRrx0GqkylicrToPCw==","i":"lxbmzQSHMFnoz3sT","t":"QMk95pA9SDwEJgB5HPI8tQ==","c":"WzDpBCztwtlGSjcvCB+c/EWRWUiHWThf/Vx6ClMQBuXqKY993G5NGEwZ+OdR4ZBDxcJCqqSvLrGtX2897XAHtBXexTt3zO+kgu91G09KIIoLBYg+Xy916wjxPhnJEnynWA8S5giCya7kRLgunCxnow==","h":"0ba567fd734804ce369218772b06fe8817173ecf3404fb2705bfcd0aef012a33","p":"QUtmeWNieFpwd0Qtak9IanVxZy1WOUFfLTV0NmJnODRsTHQ0TXBvdjVQTHhUc3pNQnd0SzliVGRjdmpoSmpGWnV5THphX1U0"};
 function b64d(s){var b=atob(s),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a;}
 g.LW_SHIELD={
   configured:true,
