@@ -1,7 +1,5 @@
 /**
  * LW Inventory – UI-Sounds (hover / press / input)
- * Hover: nur solange die Maus über dem Knopf ist, sonst Stopp.
- * Input: bei jeder Eingabe, Instanzen dürfen sich überlagern.
  */
 (function () {
   'use strict';
@@ -15,18 +13,6 @@
   var druckTon = null;
   var aktuellesHoverElement = null;
   var aktiviert = true;
-  var letzteZeigerX = null;
-  var letzteZeigerY = null;
-
-  function klangMelden(staerke, ereignis) {
-    window.dispatchEvent(new CustomEvent('lw-klang', {
-      detail: {
-        staerke: staerke,
-        x: ereignis && typeof ereignis.clientX === 'number' ? ereignis.clientX : letzteZeigerX,
-        y: ereignis && typeof ereignis.clientY === 'number' ? ereignis.clientY : letzteZeigerY
-      }
-    }));
-  }
 
   var SELEKTOR = [
     'button',
@@ -37,15 +23,33 @@
     '.modal-close'
   ].join(', ');
 
+  function tonAbspielen(audio, quelleId, gewichtung) {
+    if (!audio) return;
+    if (window.LW_KLANG_ANALYSE) {
+      LW_KLANG_ANALYSE.kontextFreischalten();
+      LW_KLANG_ANALYSE.einmalTonAbspielen(audio, quelleId, gewichtung, LAUTSTAERKE);
+      return;
+    }
+    audio.volume = LAUTSTAERKE;
+    var abspielen = audio.play();
+    if (abspielen && abspielen.catch) abspielen.catch(function () { /* ignorieren */ });
+  }
+
   function audioInitialisieren() {
     hoverTon = new Audio(HOVER_QUELLE);
     hoverTon.preload = 'auto';
-    hoverTon.volume = LAUTSTAERKE;
     hoverTon.loop = false;
 
     druckTon = new Audio(DRUCK_QUELLE);
     druckTon.preload = 'auto';
-    druckTon.volume = LAUTSTAERKE;
+
+    if (window.LW_KLANG_ANALYSE) {
+      LW_KLANG_ANALYSE.dauerTonVerbinden(hoverTon, 'hover', 0.55, LAUTSTAERKE);
+      LW_KLANG_ANALYSE.dauerTonVerbinden(druckTon, 'press', 0.7, LAUTSTAERKE);
+    } else {
+      hoverTon.volume = LAUTSTAERKE;
+      druckTon.volume = LAUTSTAERKE;
+    }
   }
 
   function knopfFinden(ziel) {
@@ -60,22 +64,32 @@
   function hoverStoppen() {
     if (!hoverTon) return;
     hoverTon.pause();
-    hoverTon.currentTime = 0;
+    try { hoverTon.currentTime = 0; } catch (e) { /* ignorieren */ }
   }
 
   function hoverStarten() {
     if (!aktiviert || !hoverTon) return;
     hoverStoppen();
-    var abspielen = hoverTon.play();
-    if (abspielen && abspielen.catch) abspielen.catch(function () { /* Autoplay-Richtlinie */ });
-    klangMelden(0.12, null);
+    if (window.LW_KLANG_ANALYSE) {
+      LW_KLANG_ANALYSE.kontextFreischalten();
+      hoverTon.currentTime = 0;
+      var abspielen = hoverTon.play();
+      if (abspielen && abspielen.catch) abspielen.catch(function () { /* ignorieren */ });
+    } else {
+      tonAbspielen(hoverTon, 'hover', 0.55);
+    }
   }
 
   function druckTonAbspielen() {
     if (!aktiviert || !druckTon) return;
     druckTon.currentTime = 0;
-    var abspielen = druckTon.play();
-    if (abspielen && abspielen.catch) abspielen.catch(function () { /* ignorieren */ });
+    if (window.LW_KLANG_ANALYSE) {
+      LW_KLANG_ANALYSE.kontextFreischalten();
+      var abspielen = druckTon.play();
+      if (abspielen && abspielen.catch) abspielen.catch(function () { /* ignorieren */ });
+    } else {
+      tonAbspielen(druckTon, 'press', 0.7);
+    }
   }
 
   var EINGABE_TYPEN_UEBERSPRINGEN = {
@@ -105,15 +119,12 @@
   function eingabeTonAbspielen() {
     if (!aktiviert) return;
     var ton = new Audio(EINGABE_QUELLE);
-    ton.volume = LAUTSTAERKE;
-    var abspielen = ton.play();
-    if (abspielen && abspielen.catch) abspielen.catch(function () { /* ignorieren */ });
+    tonAbspielen(ton, 'input', 0.5);
   }
 
   function beiEingabe(ereignis) {
     if (!texteingabeFinden(ereignis.target)) return;
     eingabeTonAbspielen();
-    klangMelden(0.28, ereignis);
   }
 
   function beiMausDrueber(ereignis) {
@@ -148,14 +159,9 @@
     hoverStoppen();
     aktuellesHoverElement = null;
     druckTonAbspielen();
-    klangMelden(0.55, ereignis);
   }
 
   function binden() {
-    document.addEventListener('pointermove', function (e) {
-      letzteZeigerX = e.clientX;
-      letzteZeigerY = e.clientY;
-    }, { passive: true });
     document.addEventListener('mouseover', beiMausDrueber, true);
     document.addEventListener('mouseout', beiMausWeg, true);
     document.addEventListener('pointerdown', beiZeigerDruck, true);

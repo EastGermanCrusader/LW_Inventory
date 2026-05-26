@@ -1,5 +1,6 @@
 /**
  * LW Inventory – Hintergrundmusik nur im Bearbeitungsmodus (nach Anmeldung)
+ * Stumm = Lautstärke 0, Wiedergabe läuft weiter (kein pause).
  */
 (function () {
   'use strict';
@@ -7,7 +8,7 @@
   var QUELLE = 'music.mp3';
   var LAUTSTAERKE = 0.01;
   var ton = null;
-  var laeuft = false;
+  var wiedergabeGestartet = false;
   var bearbeitungsAktiv = false;
   var stummGeschaltet = false;
   var stummKnopf = null;
@@ -18,9 +19,24 @@
       ton = new Audio(QUELLE);
       ton.loop = true;
       ton.preload = 'auto';
+      if (window.LW_KLANG_ANALYSE) {
+        LW_KLANG_ANALYSE.dauerTonVerbinden(ton, 'musik', 1, LAUTSTAERKE);
+      }
     }
-    ton.volume = LAUTSTAERKE;
     return ton;
+  }
+
+  function hoerbareLautstaerkeSetzen() {
+    if (!ton) return;
+    var wert = stummGeschaltet ? 0 : LAUTSTAERKE;
+    if (window.LW_KLANG_ANALYSE && ton._lwKlangVerbunden) {
+      ton.volume = 1;
+      ton.muted = false;
+      LW_KLANG_ANALYSE.lautstaerkeSetzen(ton, wert);
+    } else {
+      ton.volume = wert;
+      ton.muted = stummGeschaltet;
+    }
   }
 
   function stummKnopfSichtbar(zeigen) {
@@ -29,35 +45,31 @@
     wrap.hidden = !zeigen;
   }
 
-  function wiedergabeAktualisieren() {
-    if (!bearbeitungsAktiv || stummGeschaltet) {
-      if (laeuft) stoppen();
+  function wiedergabeStarten() {
+    if (!bearbeitungsAktiv || wiedergabeGestartet) {
+      hoerbareLautstaerkeSetzen();
       return;
     }
-    starten();
-  }
-
-  function starten() {
-    if (laeuft || stummGeschaltet || !bearbeitungsAktiv) return;
     var audio = tonHolen();
-    laeuft = true;
+    if (window.LW_KLANG_ANALYSE) {
+      LW_KLANG_ANALYSE.kontextFreischalten();
+    }
+    wiedergabeGestartet = true;
+    hoerbareLautstaerkeSetzen();
     var abspielen = audio.play();
     if (abspielen && typeof abspielen.catch === 'function') {
       abspielen.catch(function () {
-        laeuft = false;
+        wiedergabeGestartet = false;
       });
     }
-    window.dispatchEvent(new CustomEvent('lw-klang', {
-      detail: { staerke: 0.38, x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 }
-    }));
   }
 
-  function stoppen() {
+  function wiedergabeBeenden() {
     if (!ton) {
-      laeuft = false;
+      wiedergabeGestartet = false;
       return;
     }
-    laeuft = false;
+    wiedergabeGestartet = false;
     ton.pause();
     try { ton.currentTime = 0; } catch (e) { /* ignorieren */ }
   }
@@ -65,18 +77,18 @@
   function stummSetzen(stumm) {
     stummGeschaltet = !!stumm;
     if (stummEingabe) stummEingabe.checked = stummGeschaltet;
-    wiedergabeAktualisieren();
+    hoerbareLautstaerkeSetzen();
   }
 
   function bearbeitungsAnsichtAktiv(istAktiv) {
     bearbeitungsAktiv = !!istAktiv;
     stummKnopfSichtbar(bearbeitungsAktiv);
     if (!bearbeitungsAktiv) {
-      stoppen();
+      wiedergabeBeenden();
       return;
     }
     if (stummEingabe) stummEingabe.checked = stummGeschaltet;
-    wiedergabeAktualisieren();
+    wiedergabeStarten();
   }
 
   function knopfInitialisieren() {
@@ -89,8 +101,8 @@
   }
 
   window.LW_BEARBEITUNGS_MUSIK = {
-    starten: starten,
-    stoppen: stoppen,
+    wiedergabeStarten: wiedergabeStarten,
+    wiedergabeBeenden: wiedergabeBeenden,
     stummSetzen: stummSetzen,
     bearbeitungsAnsichtAktiv: bearbeitungsAnsichtAktiv
   };

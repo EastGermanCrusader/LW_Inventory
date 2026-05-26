@@ -17,6 +17,10 @@
   var TEILCHEN_ANZAHL = 88;
   var VERBINDUNGS_DISTANZ = 130;
   var KLANG_ABKLINGEN = 0.92;
+  var klangPegel = 0;
+  var klangPegelMusik = 0;
+  var klangPegelUi = 0;
+  var klangPegelGeglattet = 0;
 
   function teilchenAnzahlErmitteln() {
     if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) return 48;
@@ -107,11 +111,14 @@
       if (p.y > hoehe + 20) p.y = -20;
 
       p.klangBoost *= KLANG_ABKLINGEN;
+      var pegelBoost = klangPegelGeglattet * (0.55 + klangPegelMusik * 0.45);
+      p.klangBoost = Math.min(1, Math.max(p.klangBoost, pegelBoost));
     });
   }
 
   function teilchenZeichnen() {
     kontext.clearRect(0, 0, breite, hoehe);
+    var linienPegel = Math.min(1, klangPegelGeglattet * 1.1 + klangPegelMusik * 0.35);
 
     for (var i = 0; i < teilchen.length; i++) {
       for (var j = i + 1; j < teilchen.length; j++) {
@@ -121,7 +128,7 @@
         var dy = a.y - b.y;
         var dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < VERBINDUNGS_DISTANZ) {
-          var alpha = (1 - dist / VERBINDUNGS_DISTANZ) * 0.22;
+          var alpha = (1 - dist / VERBINDUNGS_DISTANZ) * (0.14 + linienPegel * 0.28);
           kontext.strokeStyle = 'rgba(239, 68, 68, ' + alpha + ')';
           kontext.lineWidth = 0.6;
           kontext.beginPath();
@@ -133,8 +140,9 @@
     }
 
     teilchen.forEach(function (p) {
-      var hell = Math.min(1, p.helligkeit + p.klangBoost * 0.6);
-      var r = p.radius * (1 + p.klangBoost * 0.8);
+      var pegelGlow = klangPegelGeglattet * (0.4 + klangPegelMusik * 0.55 + klangPegelUi * 0.2);
+      var hell = Math.min(1, p.helligkeit + p.klangBoost * 0.55 + pegelGlow * 0.65);
+      var r = p.radius * (1 + p.klangBoost * 0.7 + pegelGlow * 1.1);
       var gradient = kontext.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3.5);
       gradient.addColorStop(0, 'rgba(255, 120, 120, ' + (hell * 0.95) + ')');
       gradient.addColorStop(0.35, 'rgba(239, 68, 68, ' + (hell * 0.55) + ')');
@@ -191,6 +199,14 @@
     window.addEventListener('lw-klang', function (e) {
       var d = e.detail || {};
       klangImpuls(d.x, d.y, d.staerke);
+    });
+
+    window.addEventListener('lw-klangpegel', function (e) {
+      var d = e.detail || {};
+      klangPegel = d.gesamt || 0;
+      klangPegelMusik = d.musik || 0;
+      klangPegelUi = d.ui || 0;
+      klangPegelGeglattet = klangPegelGeglattet * 0.82 + klangPegel * 0.18;
     });
   }
 
