@@ -639,6 +639,10 @@ main {
   font-weight: 400;
 }
 
+.akte-details dd.akte-beschreibung {
+  white-space: pre-line;
+}
+
 .akte-details dd code {
   font-family: var(--font-akte);
 }
